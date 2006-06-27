@@ -1,0 +1,9 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+t/10_episode.t
+t/20_series.t
+lib/WWW/TV.pm
+lib/WWW/TV/Episode.pm
+lib/WWW/TV/Series.pm
