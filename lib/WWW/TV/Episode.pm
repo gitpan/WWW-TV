@@ -25,6 +25,8 @@ package WWW::TV::Episode;
 use strict;
 use warnings;
 
+our $VERSION = '0.02';
+
 use Carp qw(croak);
 use LWP::UserAgent qw();
 
@@ -85,8 +87,8 @@ sub name {
     $self->{filled}->{name} = 1;
 
     ($self->{name}) = $self->_html =~ m{
-        <div\sid="content-head".*?>\n
-        <h1>(.*?)</h1>\n
+        <td\svalign="top"\sclass="pr-10\spl-10">\n
+        \s*<h1>(.*?)</h1>\n
     }x;
 
     return $self->{name};
@@ -159,6 +161,134 @@ sub first_aired {
     return $self->{first_aired};
 }
 
+=head2 stars
+
+    Returns a comma delimited string of the stars that appeared in this episode
+
+=cut
+
+sub stars {
+    my ($self) = @_;
+    return $self->{stars} if exists $self->{filled}->{stars};
+    $self->{filled}->{stars} = 1;
+
+    my ($stars) = $self->_html =~ m{
+            Star:\n
+        </td>\n
+        <td>\n
+            (<a\shref=.*)
+    }x;
+
+    my @stars;
+    for my $star (split /,&nbsp;/, $stars) {
+        next unless $star =~ m{<a href="[^"]+">(.*?)</a> \(.*?\)};
+        push @stars, $1;
+    }
+
+    $self->{stars} = join(', ', @stars);
+    return $self->{stars};
+}
+
+=head2 guest_stars
+
+    Returns a comma delimited string of the guest stars that appeared in this
+    episode
+
+=cut
+
+sub guest_stars {
+    my ($self) = @_;
+    return $self->{guest_stars} if exists $self->{filled}->{guest_stars};
+    $self->{filled}->{guest_stars} = 1;
+
+    my ($stars) = $self->_html =~ m{
+            Guest\sStar:\n
+        </td>\n
+        <td>\n
+            (<a\shref=.*)
+    }x;
+
+    my @stars;
+    for my $star (split /,&nbsp;/, $stars) {
+        next unless $star =~ m{<a href="[^"]+">(.*?)</a> \(.*?\)};
+        push @stars, $1;
+    }
+
+    $self->{guest_stars} = join(', ', @stars);
+    return $self->{guest_stars};
+}
+
+=head2 recurring_roles
+
+    Returns a comma delimited string of the people who have recurring roles
+    that appeared in this episode
+
+=cut
+
+sub recurring_roles {
+    my ($self) = @_;
+    return $self->{recurring_roles} if exists $self->{filled}->{recurring_roles};
+    $self->{filled}->{recurring_roles} = 1;
+
+    my ($stars) = $self->_html =~ m{
+            Recurring\sRole:\n
+        </td>\n
+        <td>\n
+            (<a\shref=.*)
+    }x;
+
+    my @stars;
+    for my $star (split /,&nbsp;/, $stars) {
+        next unless $star =~ m{<a href="[^"]+">(.*?)</a> \(.*?\)};
+        push @stars, $1;
+    }
+
+    $self->{recurring_roles} = join(', ', @stars);
+    return $self->{recurring_roles};
+}
+
+=head2 writer
+
+    Returns a comma delimited string of the people that wrote this episode
+
+=cut
+
+sub writer {
+    my ($self) = @_;
+    return $self->{writer} if exists $self->{filled}->{writer};
+    $self->{filled}->{writer} = 1;
+
+    ($self->{writer}) = $self->_html =~ m{
+            Writer:\n
+        </td>\n
+        <td>\n
+            <a\shref="[^"]+">(.*?)</a>
+    }x;
+
+    return $self->{writer};
+}
+
+=head2 director
+
+    Returns a comma delimited string of the people that directed this episode
+
+=cut
+
+sub director {
+    my ($self) = @_;
+    return $self->{director} if exists $self->{filled}->{director};
+    $self->{filled}->{director} = 1;
+
+    ($self->{director}) = $self->_html =~ m{
+            Director:\n
+        </td>\n
+        <td>\n
+            <a\shref="[^"]+">(.*?)</a>
+    }x;
+
+    return $self->{director};
+}
+
 =head2 url
 
     Returns the url that was used to create this object.
@@ -207,6 +337,31 @@ sub _fill_vitals {
 
     $self->{filled}->{$_} = 1 for qw(episode_number season_number first_aired);
 
+    return $self->_parse_first_aired;
+}
+
+sub _parse_first_aired {
+    my ($self) = @_;
+    my ($month, $day, $year) = $self->{first_aired} =~ m{^
+        (\w+)
+        \s*(\d+),
+        \s*(\d+)
+    $}x;
+    $month = {
+        January   => 1,
+        February  => 2,
+        March     => 3,
+        April     => 4,
+        May       => 5,
+        June      => 6,
+        July      => 7,
+        August    => 8,
+        September => 9,
+        October   => 10,
+        November  => 11,
+        December  => 12,
+    }->{$month};
+    $self->{first_aired} = sprintf('%04d-%02d-%02d', $year, $month, $day);
     return 1;
 }
 
@@ -234,7 +389,7 @@ __END__
 
 =head1 SEE ALSO
 
-L<WWW::TV::Episode>
+L<WWW::TV::Series>
 
 =head1 KNOWN ISSUES
 
@@ -248,7 +403,7 @@ done transparently these days.
 =head1 BUGS
 
 Please report any bugs or feature requests to
-C<bug-WWW-TV-Series@rt.cpan.org>, or through the web interface at
+C<bug-WWW-TV@rt.cpan.org>, or through the web interface at
 L<http://rt.cpan.org>.
 
 =head1 AUTHOR

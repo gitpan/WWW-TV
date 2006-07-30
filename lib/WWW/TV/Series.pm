@@ -23,6 +23,8 @@ package WWW::TV::Series;
 use strict;
 use warnings;
 
+our $VERSION = '0.02';
+
 use Carp qw(croak);
 use LWP::UserAgent qw();
 
@@ -186,11 +188,30 @@ sub name {
     $self->{filled}->{name} = 1;
 
     ($self->{name}) = $self->_html =~ m{
-        <div\sid="content-head".*?>\n
+        <div\sid="content-head".*?>\n\n?
         <h1>(.*?)</h1>\n
     }x;
 
     return $self->{name};
+}
+
+=head2 image
+
+    Returns the url of an image that can be used to identify this series.
+
+=cut
+
+sub image {
+    my ($self) = @_;
+    return $self->{image} if exists $self->{filled}->{image};
+    $self->{filled}->{image} = 1;
+
+    ($self->{image}) = $self->_html =~ m{
+        <a\sclass="default-image\smore"\shref=".+;image">\n
+        <img\ssrc="(.+)"\salt=".+"\s/>More\sPictures\s+</a>\n
+    }x;
+
+    return $self->{image};
 }
 
 =head2 episodes
@@ -213,7 +234,7 @@ sub episodes {
         grep { defined }
         map {
             my $ep;
-            if (m#<a href=".*/episode/(\d+)/summary.html">(.*)</a>#) {
+            if (m#<a href=".*/episode/(\d+)/summary\.html[^"]*">(.*)</a>#) {
                 $ep = WWW::TV::Episode->new(id => $1, name => $2);
             }
             $ep;
@@ -296,7 +317,7 @@ done transparently these days.
 =head1 BUGS
 
 Please report any bugs or feature requests to
-C<bug-WWW-TV-Series@rt.cpan.org>, or through the web interface at
+C<bug-WWW-TV@rt.cpan.org>, or through the web interface at
 L<http://rt.cpan.org>.
 
 =head1 AUTHOR

@@ -1,5 +1,14 @@
 Revision history for Perl extension WWW::TV.
 
+0.02  Sun Jul 30 10:05:28 2006
+	- Added LICENSE file.
+	- Added version numbers to all perl modules.
+	- Dropped the requirement for perl 5.8 down to perl 5.6.1.
+	- Fixed a bug with the "name" field, cos TV.com changed templates.
+	- first_aired now returns an ISO format.
+	- Added episode support for cast/guest_stars/recurring_roles/director/writer
+	- Added tests for the new supported fields.
+
 0.01  Tue Jun 27 14:33:28 2006
 	- original version; created by h2xs 1.23 with options
 		-AX WWW::TV
