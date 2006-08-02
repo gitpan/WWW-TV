@@ -31,8 +31,8 @@ use_ok('WWW::TV::Episode');
     ok($episode->stars =~ /\bWentworth Miller\b/, 'stars');
     ok($episode->guest_stars =~ /\bJeff Parker\b/, 'guest_stars');
     ok($episode->recurring_roles =~ /\bStacy Keach\b/, 'recurring_roles');
-    is($episode->director, 'Brett Ratner', 'director');
-    is($episode->writer, 'Paul T. Scheuring', 'writer');
+    is($episode->directors, 'Brett Ratner', 'directors');
+    is($episode->writers, 'Paul T. Scheuring', 'writers');
     is($episode->first_aired, '2005-08-29', 'first_aired');
 }
 
