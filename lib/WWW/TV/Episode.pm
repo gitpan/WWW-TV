@@ -25,7 +25,7 @@ package WWW::TV::Episode;
 use strict;
 use warnings;
 
-our $VERSION = '0.03';
+our $VERSION = '0.02';
 
 use Carp qw(croak);
 use LWP::UserAgent qw();
@@ -179,7 +179,13 @@ sub stars {
             (<a\shref=.*)
     }x;
 
-    $self->{stars} = $self->_parse_people($stars);
+    my @stars;
+    for my $star (split /,&nbsp;/, $stars) {
+        next unless $star =~ m{<a href="[^"]+">(.*?)</a> \(.*?\)};
+        push @stars, $1;
+    }
+
+    $self->{stars} = join(', ', @stars);
     return $self->{stars};
 }
 
@@ -202,7 +208,13 @@ sub guest_stars {
             (<a\shref=.*)
     }x;
 
-    $self->{guest_stars} = $self->_parse_people($stars);
+    my @stars;
+    for my $star (split /,&nbsp;/, $stars) {
+        next unless $star =~ m{<a href="[^"]+">(.*?)</a> \(.*?\)};
+        push @stars, $1;
+    }
+
+    $self->{guest_stars} = join(', ', @stars);
     return $self->{guest_stars};
 }
 
@@ -225,21 +237,14 @@ sub recurring_roles {
             (<a\shref=.*)
     }x;
 
-    $self->{recurring_roles} = $self->_parse_people($stars);
-    return $self->{recurring_roles};
-}
-
-sub _parse_people {
-    my ($self, $stars) = @_;
-    return unless $stars;
-
     my @stars;
-    for my $star (split /,/, $stars) {
-        next unless $star =~ m{<a href="[^"]+">(.*?)</a>};
+    for my $star (split /,&nbsp;/, $stars) {
+        next unless $star =~ m{<a href="[^"]+">(.*?)</a> \(.*?\)};
         push @stars, $1;
     }
 
-    return join(', ', @stars);
+    $self->{recurring_roles} = join(', ', @stars);
+    return $self->{recurring_roles};
 }
 
 =head2 writer
@@ -248,42 +253,40 @@ sub _parse_people {
 
 =cut
 
-sub writers {
+sub writer {
     my ($self) = @_;
-    return $self->{writers} if exists $self->{filled}->{writers};
-    $self->{filled}->{writers} = 1;
+    return $self->{writer} if exists $self->{filled}->{writer};
+    $self->{filled}->{writer} = 1;
 
-    my ($stars) = $self->_html =~ m{
+    ($self->{writer}) = $self->_html =~ m{
             Writer:\n
         </td>\n
         <td>\n
-            (<a\shref=.*)
+            <a\shref="[^"]+">(.*?)</a>
     }x;
 
-    $self->{writers} = $self->_parse_people($stars);
-    return $self->{writers};
+    return $self->{writer};
 }
 
-=head2 directors
+=head2 director
 
     Returns a comma delimited string of the people that directed this episode
 
 =cut
 
-sub directors {
+sub director {
     my ($self) = @_;
-    return $self->{directors} if exists $self->{filled}->{directors};
-    $self->{filled}->{directors} = 1;
+    return $self->{director} if exists $self->{filled}->{director};
+    $self->{filled}->{director} = 1;
 
-    my ($stars) = $self->_html =~ m{
+    ($self->{director}) = $self->_html =~ m{
             Director:\n
         </td>\n
         <td>\n
-            (<a\shref=.*)
+            <a\shref="[^"]+">(.*?)</a>
     }x;
 
-    $self->{directors} = $self->_parse_people($stars);
-    return $self->{directors};
+    return $self->{director};
 }
 
 =head2 url

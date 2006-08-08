@@ -23,7 +23,7 @@ package WWW::TV::Series;
 use strict;
 use warnings;
 
-our $VERSION = '0.03';
+our $VERSION = '0.02';
 
 use Carp qw(croak);
 use LWP::UserAgent qw();
@@ -138,16 +138,13 @@ sub genres {
     return $self->{genres} if exists $self->{filled}->{genres};
     $self->{filled}->{genres} = 1;
 
-    my ($genres_row) = $self->_html =~ m{
-        Show\sCategories:\n
-        (<a\shref=.*</a>)
-    }x;
-
+    my @parts = split(/Show Categories:/, $self->_html);
+    my ($genres) = $parts[1] =~ /^(.*)\n/s if $parts[1];
     $self->{genres} =
         join(
-            ', ',
-            map { s/\s*<a href="[^"]+">(.*?)<\/a>\s*/$1/; $_ }
-            split(/,/, $genres_row)
+            ',',
+            map { s#<a href=.*?>(.*?)</a>#$1#; $_ }
+            split(/,/, $genres)
         );
 
     return $self->{genres};
@@ -174,7 +171,7 @@ sub cast {
         }x;
         push @cast, $1;
     }
-    $self->{cast} = join(', ', @cast);
+    $self->{cast} = join(',', @cast);
 
     return $self->{cast};
 }
