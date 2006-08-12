@@ -25,7 +25,7 @@ package WWW::TV::Episode;
 use strict;
 use warnings;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 use Carp qw(croak);
 use LWP::UserAgent qw();
@@ -111,6 +111,14 @@ sub summary {
       <div\sid="main-col">\n
       \n
       <div>\n
+      (?:
+        <div\sid="video-hub".*?\n
+        .*?\n
+        .*?\n
+        </div>\n
+        .*?Watch\sVideo.*?\n
+        </div>\n
+      )?
       (.*?)
       <div\sclass="ta-r\smt-10\sf-bold">\n
     }sx;

@@ -25,6 +25,7 @@ use_ok('WWW::TV::Episode');
         'WWW::TV::Episode',
     );
     ok($episode->summary =~ /Fox River/, 'summary');
+    ok($episode->summary !~ /Watch Video/, 'summary');
     is($episode->name, 'Pilot', 'title');
     is($episode->season_number, 1, 'season number');
     is($episode->episode_number, 1, 'episode_number');
