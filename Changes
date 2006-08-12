@@ -1,5 +1,9 @@
 Revision history for Perl extension WWW::TV.
 
+0.03  Sun Jul 30 14:50:28 2006
+	- Fix bug with directors/writers in previous release
+	- Fix bug with genres that must have never been really tested properly.
+
 0.02  Sun Jul 30 10:05:28 2006
 	- Added LICENSE file.
 	- Added version numbers to all perl modules.

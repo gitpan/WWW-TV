@@ -10,7 +10,7 @@ use_ok('WWW::TV::Series');
     isa_ok(my $series = WWW::TV::Series->new(id => 119), 'WWW::TV::Series');
     is($series->name, 'M*A*S*H', 'name');
     is($series->url, 'http://www.tv.com/show/119/summary.html', 'url');
-    ok($series->genres =~ /Comedy/, 'genres');
+    is($series->genres, 'Comedy, Drama', 'genres');
 }
 
 { # Prison Break via name =>
