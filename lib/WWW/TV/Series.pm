@@ -23,7 +23,7 @@ package WWW::TV::Series;
 use strict;
 use warnings;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 use Carp qw(croak);
 use LWP::UserAgent qw();
@@ -169,8 +169,8 @@ sub cast {
     my @cast;
     for my $line (split /\n/, $self->_html) {
         next unless $line =~ m{
-            <a\shref="http://www\.tv\.com/.*?person/\d+/summary\.html
-            \?tag=cast;name;\d+">(.*?)</a><br\s/>
+            <a\s.*?href="http://www\.tv\.com/.*?person/\d+/summary\.html
+            \?.*?tag=cast;name;\d+">(.*?)</a>
         }x;
         push @cast, $1;
     }

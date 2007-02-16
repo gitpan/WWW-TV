@@ -1,5 +1,8 @@
 Revision history for Perl extension WWW::TV.
 
+0.05  Fri Feb 16 21:55:28 2007
+	- Fix failing test due to HTML content changes.
+
 0.04  Sun Aug 09 21:38:28 2006
 	- Remove the "video" div from episodes summary parsing.
 

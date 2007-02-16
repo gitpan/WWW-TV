@@ -18,7 +18,7 @@ use_ok('WWW::TV::Series');
         my $series = WWW::TV::Series->new(name => 'Prison Break'),
         'WWW::TV::Series',
     );
-    ok($series->summary =~ /death row/, 'summary');
+    ok($series->summary =~ /fox river/i, 'summary');
     ok($series->cast =~ /Wentworth Miller/, 'cast');
     ok($series->image =~ /\.jpg$/, 'image');
 }
