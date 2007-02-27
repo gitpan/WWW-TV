@@ -18,13 +18,18 @@ the sub modules all the time.
 L<WWW::TV::Series>
 L<WWW::TV::Episode>
 
+=head1 BUGS
+
+Please report any bugs or feature requests through the web interface
+at L<http://rt.cpan.org/Dist/Display.html?Queue=WWW-TV>.
+
 =head1 AUTHOR
 
 Danial Pearce C<cpan@tigris.id.au>
 
 =head1 LICENCE AND COPYRIGHT
 
-Copyright (c) 2006, Danial Pearce C<cpan@tigris.id.au>. All rights reserved.
+Copyright (c) 2006, 2007 Danial Pearce C<cpan@tigris.id.au>. All rights reserved.
 
 This module is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
@@ -36,7 +41,7 @@ package WWW::TV;
 use WWW::TV::Series;
 use WWW::TV::Episode;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 1;
 

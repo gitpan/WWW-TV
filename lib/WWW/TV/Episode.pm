@@ -6,6 +6,8 @@ WWW::TV::Episode - Parse TV.com for TV Episode information.
 
   use WWW::TV::Episode qw();
   my $episode = WWW::TV::Series->new(id => '475567');
+  
+  # with optional paramers 
 
   print $episode->summary;
 
@@ -25,7 +27,7 @@ package WWW::TV::Episode;
 use strict;
 use warnings;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 use Carp qw(croak);
 use LWP::UserAgent qw();
@@ -35,30 +37,46 @@ use LWP::UserAgent qw();
     The new() method is the constructor. It takes the id of the show
     assuming you have previously looked that up.
 
-        my $episode = WWW::TV::Episode->new(id => 475567);
+        # default usage
+        my $episode = WWW::TV::Episode->new(id => 924072);
+        
+        # change user-agent from the default of "libwww-perl/#.##"
+        my $episode = WWW::TV::Episode->new(id => 924072, agent => 'WWW::TV');
 
     It also (optionally) takes the name of the episode. This is not used
     in any way to search for the episode, but is used as initial data
     population for that field so that the html isn't parsed if you only
     want an object with the name. This is used by the L<WWW::TV::Series>
     object to populate a big array of episodes that have names without
-    needing to fetch any pages.
+    needing to fetch any pages.    
+
+        # pre-populate episode name
+        my $episode = WWW::TV::Episode->new(id => 924072, name => 'Run!');
 
 =cut
 
 sub new {
     my $class = ref $_[0] ? ref(shift) : shift;
 
-    ## golfed by Shane Hanna
-    my ($id, $name) = @_ % 2 ? shift : @{{@_}}{qw(id name)};
-    croak 'Invalid id' unless defined $id and $id =~ /^\d+$/;
+    my %data;
+
+    if (@_ == 1) {
+        $data{id} = shift;
+    }
+    elsif (scalar(@_) % 2 == 0) {
+        %data = @_;
+    }
+
+    croak 'No id given to constructor' unless exists $data{id};
+    croak "Invalid id: $data{id}" unless ($data{id} =~ /^\d+$/ && $data{id});
 
     return bless {
-        id     => $id,
-        name   => $name,
+        id     => $data{id},
+        name   => $data{name},
+        _agent => $data{agent} || LWP::UserAgent::_agent,
         filled => {
             id => 1,
-            $name
+            $data{name}
                 ? (name => 1)
                 : (),
         },
@@ -72,7 +90,9 @@ sub new {
 =cut
 
 sub id {
-    return shift->{id};
+    my $self = shift;
+
+    return $self->{id};
 }
 
 =head2 name
@@ -82,15 +102,17 @@ sub id {
 =cut
 
 sub name {
-    my ($self) = @_;
-    return $self->{name} if exists $self->{filled}->{name};
-    $self->{filled}->{name} = 1;
+    my $self = shift;
 
-    ($self->{name}) = $self->_html =~ m{
-        <td\svalign="top"\sclass="pr-10\spl-10">\n
-        \s*<h1>(.*?)</h1>\n
-    }x;
+    unless (exists $self->{filled}->{name}) {
+        ($self->{name}) = $self->_html =~ m{
+            <td\svalign="top"\sclass="pr-10\spl-10">\n
+            \s*<h1>(.*?)</h1>\n
+        }x;
 
+        $self->{filled}->{name} = 1;
+    }
+    
     return $self->{name};
 }
 
@@ -101,29 +123,30 @@ sub name {
 =cut
 
 sub summary {
-    my ($self) = @_;
-    return $self->{summary} if exists $self->{filled}->{summary};
-    $self->{filled}->{summary} = 1;
+    my $self = shift;
 
-    ($self->{summary}) = $self->_html =~ m{
-      <div\sid="full-col-wrap">\n
-      \n
-      <div\sid="main-col">\n
-      \n
-      <div>\n
-      (?:
-        <div\sid="video-hub".*?\n
-        .*?\n
-        .*?\n
-        </div>\n
-        .*?Watch\sVideo.*?\n
-        </div>\n
-      )?
-      (.*?)
-      <div\sclass="ta-r\smt-10\sf-bold">\n
-    }sx;
-
-    $self->{summary} =~ s{<br(?: /)?>}{}g;
+    unless (exists $self->{filled}->{summary}) {
+        $self->{filled}->{summary} = 1;
+    
+        ($self->{summary}) = $self->_html =~ m{
+          <div\sid="full-col-wrap">\n
+          \n
+          <div\sid="main-col">\n
+          \n
+          <div>\n
+          (?:
+            <div\sid="video-hub".*?\n
+            .*?\n
+            .*?\n
+            </div>\n
+            .*?Watch\sVideo.*?\n
+            </div>\n
+          )?
+          (.*?)
+          <div\sclass="ta-r\smt-10\sf-bold">\n
+        }sx;
+        $self->{summary} =~ s{<br(?: /)?>}{}g;
+    }
 
     return $self->{summary};
 }
@@ -135,9 +158,12 @@ sub summary {
 =cut
 
 sub season_number {
-    my ($self) = @_;
-    return $self->{season_number} if exists $self->{filled}->{season_number};
-    $self->_fill_vitals;
+    my $self = shift;
+
+    unless (exists $self->{filled}->{season_number}) {
+        $self->_fill_vitals;
+    }
+
     return $self->{season_number};
 }
 
@@ -150,96 +176,175 @@ sub season_number {
 =cut
 
 sub episode_number {
-    my ($self) = @_;
-    return $self->{episode_number} if exists $self->{filled}->{episode_number};
-    $self->_fill_vitals;
+    my $self = shift;
+
+    unless (exists $self->{filled}->{episode_number}) {
+        $self->_fill_vitals;
+    }
+
     return $self->{episode_number};
+}
+
+=head2 format_details ($format_str)
+
+    Returns episode details using a special format string, similar to printf:
+       %I - series ID
+       %N - series name
+       %s - season number
+       %S - season number (0-padded to two digits, if required)
+       %i - episode ID
+       %e - episode number
+       %E - episide number (0-padded to two digits, if required)
+       %n - episode name
+       %d - date episode first aired
+
+    The default format is:
+       %N.s%Se%E - %n (eg: "Heroes.s1e02 - Don't Look Back")
+ 
+=cut
+
+sub format_details {
+    my $self = shift;
+    
+    my $format_str = shift || '%N.s%Se%E - %n';
+
+    # format subs .. expecting $_[0] is $self
+    my %formats = (
+       'I'  => sub { $_[0]->series_id },
+       'N'  => sub { $_[0]->series->name },
+       's'  => sub { $_[0]->season_number },
+       'S'  => sub { sprintf('%02d', $_[0]->season_number) },
+       'i'  => sub { $_[0]->id },
+       'e'  => sub { $_[0]->episode_number },
+       'E'  => sub { sprintf('%02d', $_[0]->episode_number) },
+       'n'  => sub { $_[0]->name },
+       'd'  => sub { $_[0]->first_aired },
+    );
+
+    # substitution
+    $format_str =~
+            s/
+                # look for single character format specifier
+                %([a-zA-Z])
+            /
+                # use format sub if found, otherwise leave as-is
+                $formats{$1} ? $formats{$1}->($self) : "\%$1"
+
+            /sgex;
+
+    return $format_str;
 }
 
 =head2 first_aired
 
-    Returns a string of the date this episode first aired.
+    Returns a string of the date this episode first aired in ISO 8601 (yyyy-mm-dd) format.
 
 =cut
 
 sub first_aired {
-    my ($self) = @_;
-    return $self->{first_aired} if exists $self->{filled}->{first_aired};
-    $self->_fill_vitals;
+    my $self = shift;
+
+    unless (exists $self->{filled}->{first_aired}) {
+        $self->_fill_vitals;
+    }
+
     return $self->{first_aired};
 }
 
 =head2 stars
 
-    Returns a comma delimited string of the stars that appeared in this episode
+    Returns a list of the stars that appeared in this episode.
+
+    # in scalar context, returns a comma-delimited string
+    my $stars = $episode->stars;
+    
+    # in array context, returns an array
+    my @stars = $episode->stars;
 
 =cut
 
 sub stars {
-    my ($self) = @_;
-    return $self->{stars} if exists $self->{filled}->{stars};
-    $self->{filled}->{stars} = 1;
+    my $self = shift;
 
-    my ($stars) = $self->_html =~ m{
-            Star:\n
-        </td>\n
-        <td>\n
-            (<a\shref=.*)
-    }x;
+    unless (exists $self->{filled}->{stars}) {
+        my ($stars) = $self->_html =~ m{
+                Star:\n
+            </td>\n
+            <td>\n
+                (<a\shref=.*)
+        }x;
 
-    $self->{stars} = $self->_parse_people($stars);
+        $self->{stars} = $self->_parse_people($stars);
+        $self->{filled}->{stars} = 1;
+    }
+    
     return $self->{stars};
 }
 
 =head2 guest_stars
 
-    Returns a comma delimited string of the guest stars that appeared in this
-    episode
+    Returns a list of the guest stars that appeared in this episode.
+
+    # in scalar context, returns a comma-delimited string
+    my $guest_stars = $episode->guest_stars;
+    
+    # in array context, returns an array
+    my @guest_stars = $episode->guest_stars;
 
 =cut
 
 sub guest_stars {
-    my ($self) = @_;
-    return $self->{guest_stars} if exists $self->{filled}->{guest_stars};
-    $self->{filled}->{guest_stars} = 1;
+    my $self = shift;
 
-    my ($stars) = $self->_html =~ m{
-            Guest\sStar:\n
-        </td>\n
-        <td>\n
-            (<a\shref=.*)
-    }x;
+    unless (exists $self->{filled}->{guest_stars}) {
+        my ($stars) = $self->_html =~ m{
+                Guest\sStar:\n
+            </td>\n
+            <td>\n
+                (<a\shref=.*)
+        }x;
+    
+        $self->{guest_stars} = $self->_parse_people($stars);
+        $self->{filled}->{guest_stars} = 1;
+    }
 
-    $self->{guest_stars} = $self->_parse_people($stars);
     return $self->{guest_stars};
 }
 
 =head2 recurring_roles
 
-    Returns a comma delimited string of the people who have recurring roles
+    Returns a list of the people who have recurring roles
     that appeared in this episode
+
+    # in scalar context, returns a comma-delimited string
+    my $recurring_roless = $episode->recurring_roless;
+    
+    # in array context, returns an array
+    my @recurring_roless = $episode->recurring_roless;
 
 =cut
 
 sub recurring_roles {
-    my ($self) = @_;
-    return $self->{recurring_roles} if exists $self->{filled}->{recurring_roles};
-    $self->{filled}->{recurring_roles} = 1;
+    my $self = shift;
 
-    my ($stars) = $self->_html =~ m{
-            Recurring\sRole:\n
-        </td>\n
-        <td>\n
-            (<a\shref=.*)
-    }x;
+    unless (exists $self->{filled}->{recurring_roles}) {
+        my ($stars) = $self->_html =~ m{
+                Recurring\sRole:\n
+            </td>\n
+            <td>\n
+                (<a\shref=.*)
+        }x;
+    
+        $self->{recurring_roles} = $self->_parse_people($stars);
+        $self->{filled}->{recurring_roles} = 1;
+    }
 
-    $self->{recurring_roles} = $self->_parse_people($stars);
     return $self->{recurring_roles};
 }
 
 sub _parse_people {
-    my ($self, $stars) = @_;
-    return unless $stars;
+    my $self = shift;
+    my $stars = shift or return;
 
     my @stars;
     for my $star (split /,/, $stars) {
@@ -250,47 +355,63 @@ sub _parse_people {
     return join(', ', @stars);
 }
 
-=head2 writer
+=head2 writers
 
-    Returns a comma delimited string of the people that wrote this episode
+    Returns a list of the people that wrote this episode.
+
+    # in scalar context, returns a comma-delimited string
+    my $writers = $episode->writers;
+    
+    # in array context, returns an array
+    my @writers = $episode->writers;
 
 =cut
 
 sub writers {
-    my ($self) = @_;
-    return $self->{writers} if exists $self->{filled}->{writers};
-    $self->{filled}->{writers} = 1;
+    my $self = shift;
 
-    my ($stars) = $self->_html =~ m{
-            Writer:\n
-        </td>\n
-        <td>\n
-            (<a\shref=.*)
-    }x;
+    unless (exists $self->{filled}->{writers}) {
+        my ($stars) = $self->_html =~ m{
+                Writer:\n
+            </td>\n
+            <td>\n
+                (<a\shref=.*)
+        }x;
+    
+        $self->{writers} = $self->_parse_people($stars);
+        $self->{filled}->{writers} = 1;
+    }
 
-    $self->{writers} = $self->_parse_people($stars);
     return $self->{writers};
 }
 
 =head2 directors
 
-    Returns a comma delimited string of the people that directed this episode
+    Returns a list of the people that directed this episode.
+
+    # in scalar context, returns a comma-delimited string
+    my $directors = $episode->directors;
+    
+    # in array context, returns an array
+    my @directors = $episode->directors;
 
 =cut
 
 sub directors {
-    my ($self) = @_;
-    return $self->{directors} if exists $self->{filled}->{directors};
-    $self->{filled}->{directors} = 1;
+    my $self = shift;
 
-    my ($stars) = $self->_html =~ m{
-            Director:\n
-        </td>\n
-        <td>\n
-            (<a\shref=.*)
-    }x;
+    unless (exists $self->{filled}->{directors}) {
+        my ($stars) = $self->_html =~ m{
+                Director:\n
+            </td>\n
+            <td>\n
+                (<a\shref=.*)
+        }x;
+    
+        $self->{directors} = $self->_parse_people($stars);
+        $self->{filled}->{directors} = 1;
+    }
 
-    $self->{directors} = $self->_parse_people($stars);
     return $self->{directors};
 }
 
@@ -301,33 +422,72 @@ sub directors {
 =cut
 
 sub url {
-    return sprintf('http://www.tv.com/episode/%d/summary.html', shift->id);
+    my $self = shift;
+
+    return sprintf('http://www.tv.com/episode/%d/summary.html', $self->id);
+}
+
+=head2 season
+
+    Returns an array of other episodes for the same season of this series.
+
+=cut
+
+sub season {
+    my $self = shift;
+    
+    my @episodes = $self->series->episodes( season => $self->season_number );
+     
+    return wantarray ? @episodes : \@episodes;
+}
+
+=head2 series_id
+
+    Returns the series ID for this episode.
+
+=cut
+
+sub series_id {
+    my $self = shift;
+
+    unless (exists $self->{filled}->{series_id}) {
+        my ($id) = $self->_html =~ m{
+            <a\shref=".*/show/(\d+)/episode_listings\.html">Episodes</a>
+        }sx;
+    
+        $self->{series_id} = $id;
+        $self->{filled}->{series_id} = 1;
+   }
+
+
+    return $self->{series_id};
 }
 
 =head2 series
 
-    Returns an L<WWW::TV::Series> object which is the series that this
-    episode is a part of.
+    Returns an L<WWW::TV::Series> object which is the complete series
+    that this episode is a part of.
 
 =cut
 
 sub series {
-    my ($self) = @_;
-    return $self->{series} if exists $self->{filled}->{series};
-    $self->{filled}->{series} = 1;
+    my $self = shift;
 
-    my ($id) = $self->_html =~ m{
-        <a\shref=".*/show/(\d+)/episode_listings\.html">Episodes</a>
-    }sx;
-
-    require WWW::TV::Series;
-    $self->{series} = WWW::TV::Series->new(id => $id);
+    unless (exists $self->{filled}->{series}) {   
+        if ($self->series_id) {
+            require WWW::TV::Series;
+            $self->{series} = WWW::TV::Series->new(id => $self->series_id);
+            $self->{filled}->{series} = 1;
+        } else {
+            croak "Can't find series_id for this episode";
+        }
+    }
 
     return $self->{series};
 }
 
 sub _fill_vitals {
-    my ($self) = @_;
+    my $self = shift;
 
     ($self->{episode_number}, $self->{season_number}, $self->{first_aired})
         = $self->_html
@@ -337,7 +497,7 @@ sub _fill_vitals {
             \s&nbsp;&nbsp;\s
             Season\sNum:\s(\d+)
             \s&nbsp;&nbsp;\s
-            First\sAired:\s\w+\s(\w+\s\d\d?,\s\d{4})
+            First\sAired:\s(?:\w+\s)?(\w+\s\d\d?,\s\d{4}|n/a)
         }sx;
 
     $self->{filled}->{$_} = 1 for qw(episode_number season_number first_aired);
@@ -346,7 +506,10 @@ sub _fill_vitals {
 }
 
 sub _parse_first_aired {
-    my ($self) = @_;
+    my $self = shift;
+
+    return if $self->{first_aired} eq 'n/a';
+
     my ($month, $day, $year) = $self->{first_aired} =~ m{^
         (\w+)
         \s*(\d+),
@@ -367,25 +530,29 @@ sub _parse_first_aired {
         December  => 12,
     }->{$month};
     $self->{first_aired} = sprintf('%04d-%02d-%02d', $year, $month, $day);
+
     return 1;
 }
 
 sub _html {
-    my ($self) = @_;
-    return $self->{html} if $self->{filled}->{html};
-    $self->{filled}->{html} = 1;
+    my $self = shift;
 
-    my $rc = LWP::UserAgent->new->get($self->url);
-    croak sprintf('Unable to fetch page for series %s', $self->id)
-        unless $rc->is_success;
-    $self->{html} =
-        join(
-            "\n",
-            map { s/^\s*//; s/\s*$//; $_ }
-            split /\n/, $rc->content
-        );
+    unless ($self->{filled}->{html}) {
+        my $ua = LWP::UserAgent->new( agent => $self->{_agent} );
+        my $rc = $ua->get($self->url);
+    
+        croak sprintf('Unable to fetch page for series %s', $self->id)
+            unless $rc->is_success;
+        $self->{html} =
+            join(
+                "\n",
+                map { s/^\s*//; s/\s*$//; $_ }
+                split /\n/, $rc->content
+            );
+        $self->{filled}->{html} = 1;
+    }
 
-    return shift->{html};
+    return $self->{html};
 }
 
 1;
@@ -407,17 +574,19 @@ done transparently these days.
 
 =head1 BUGS
 
-Please report any bugs or feature requests to
-C<bug-WWW-TV@rt.cpan.org>, or through the web interface at
-L<http://rt.cpan.org>.
+Please report any bugs or feature requests through the web interface
+at L<http://rt.cpan.org/Dist/Display.html?Queue=WWW-TV>.
 
-=head1 AUTHOR
+=head1 AUTHORS
 
 Danial Pearce C<cpan@tigris.id.au>
+Stephen Steneker C<stennie@cpan.org>
 
 =head1 LICENCE AND COPYRIGHT
 
-Copyright (c) 2006, Danial Pearce C<cpan@tigris.id.au>. All rights reserved.
+Copyright (c) 2006, 2007 Danial Pearce C<cpan@tigris.id.au>. All rights reserved.
+
+Some parts copyright 2007 Stephen Steneker C<stennie@cpan.org>.
 
 This module is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

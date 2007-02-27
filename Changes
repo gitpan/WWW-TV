@@ -1,5 +1,15 @@
 Revision history for Perl extension WWW::TV.
 
+0.06  Wed Feb 28 10:32:28 2007 (Stephen Steneker)
+	- Can restrict $series->episodes to a specific season
+	- Add $episode->format_details for creating a compact summary of details
+	- Add $episode->season to return all episodes from same season
+	- Add $episode->series_id to return series ID
+	- Add support for setting user-agent in constructors
+	- $series->genres, $series->cast now return array if appropriate
+	- Fix for parsing episodes that haven't been aired yet
+		[RT#21161: Ulrich MŸller]
+
 0.05  Fri Feb 16 21:55:28 2007
 	- Fix failing test due to HTML content changes.
 
