@@ -84,8 +84,4 @@ use_ok('WWW::TV::Series');
     is($episode_27->series->name, 'Joey', 'episode series is: Joey');
 }
 
-SKIP: { # Test for future (yet to be aired) episode.
-    skip ...
-}
-
 exit 0;

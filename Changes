@@ -1,5 +1,8 @@
 Revision history for Perl extension WWW::TV.
 
+0.07  Thu Feb 29 09:08:28 2007
+	- Remove a test placeholder that I'd retardedly left in the wrong spot.
+
 0.06  Wed Feb 28 10:32:28 2007 (Stephen Steneker)
 	- Can restrict $series->episodes to a specific season
 	- Add $episode->format_details for creating a compact summary of details
