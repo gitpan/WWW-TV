@@ -27,7 +27,7 @@ package WWW::TV::Episode;
 use strict;
 use warnings;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 use Carp qw(croak);
 use LWP::UserAgent qw();
@@ -205,7 +205,7 @@ sub episode_number {
 
 sub format_details {
     my $self = shift;
-    
+
     my $format_str = shift || '%N.s%Se%E - %n';
 
     # format subs .. expecting $_[0] is $self
@@ -452,13 +452,11 @@ sub series_id {
 
     unless (exists $self->{filled}->{series_id}) {
         my ($id) = $self->_html =~ m{
-            <a\shref=".*/show/(\d+)/episode_listings\.html">Episodes</a>
+            <a\shref=".*/show/(\d+)/cast\.html">Cast</a>
         }sx;
-    
         $self->{series_id} = $id;
         $self->{filled}->{series_id} = 1;
    }
-
 
     return $self->{series_id};
 }
@@ -473,7 +471,7 @@ sub series_id {
 sub series {
     my $self = shift;
 
-    unless (exists $self->{filled}->{series}) {   
+    unless (exists $self->{filled}->{series}) {
         if ($self->series_id) {
             require WWW::TV::Series;
             $self->{series} = WWW::TV::Series->new(id => $self->series_id);
@@ -580,6 +578,7 @@ at L<http://rt.cpan.org/Dist/Display.html?Queue=WWW-TV>.
 =head1 AUTHORS
 
 Danial Pearce C<cpan@tigris.id.au>
+
 Stephen Steneker C<stennie@cpan.org>
 
 =head1 LICENCE AND COPYRIGHT

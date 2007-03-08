@@ -23,7 +23,7 @@ package WWW::TV::Series;
 use strict;
 use warnings;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 use Carp qw(croak);
 use LWP::UserAgent qw();
@@ -380,6 +380,7 @@ at L<http://rt.cpan.org/Dist/Display.html?Queue=WWW-TV>.
 =head1 AUTHORS
 
 Danial Pearce C<cpan@tigris.id.au>
+
 Stephen Steneker C<stennie@cpan.org>
 
 =head1 LICENCE AND COPYRIGHT
@@ -387,10 +388,3 @@ Stephen Steneker C<stennie@cpan.org>
 Copyright (c) 2006, 2007 Danial Pearce C<cpan@tigris.id.au>. All rights reserved.
 
 Some parts copyright 2007 Stephen Steneker C<stennie@cpan.org>.
-
-=head1 LICENCE AND COPYRIGHT
-
-Copyright (c) 2006, Danial Pearce C<cpan@tigris.id.au>. All rights reserved.
-
-This module is free software; you can redistribute it and/or
-modify it under the same terms as Perl itself.

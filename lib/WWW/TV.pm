@@ -41,7 +41,7 @@ package WWW::TV;
 use WWW::TV::Series;
 use WWW::TV::Episode;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 1;
 

@@ -1,5 +1,9 @@
 Revision history for Perl extension WWW::TV.
 
+0.08  Fri Mar 09 00:42:28 2007
+	- Fixed a bug with the "series_id" field, cos TV.com changed templates.
+		- Thanks to Anatoliy Dmytriyev for the report.
+
 0.07  Thu Feb 29 09:08:28 2007
 	- Remove a test placeholder that I'd retardedly left in the wrong spot.
 
