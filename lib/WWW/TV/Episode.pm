@@ -6,8 +6,8 @@ WWW::TV::Episode - Parse TV.com for TV Episode information.
 
   use WWW::TV::Episode qw();
   my $episode = WWW::TV::Series->new(id => '475567');
-  
-  # with optional paramers 
+
+  # with optional paramers
 
   print $episode->summary;
 
@@ -27,7 +27,7 @@ package WWW::TV::Episode;
 use strict;
 use warnings;
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 use Carp qw(croak);
 use LWP::UserAgent qw();
@@ -39,7 +39,7 @@ use LWP::UserAgent qw();
 
         # default usage
         my $episode = WWW::TV::Episode->new(id => 924072);
-        
+
         # change user-agent from the default of "libwww-perl/#.##"
         my $episode = WWW::TV::Episode->new(id => 924072, agent => 'WWW::TV');
 
@@ -48,7 +48,7 @@ use LWP::UserAgent qw();
     population for that field so that the html isn't parsed if you only
     want an object with the name. This is used by the L<WWW::TV::Series>
     object to populate a big array of episodes that have names without
-    needing to fetch any pages.    
+    needing to fetch any pages.
 
         # pre-populate episode name
         my $episode = WWW::TV::Episode->new(id => 924072, name => 'Run!');
@@ -112,7 +112,7 @@ sub name {
 
         $self->{filled}->{name} = 1;
     }
-    
+
     return $self->{name};
 }
 
@@ -127,7 +127,6 @@ sub summary {
 
     unless (exists $self->{filled}->{summary}) {
         $self->{filled}->{summary} = 1;
-    
         ($self->{summary}) = $self->_html =~ m{
           <div\sid="full-col-wrap">\n
           \n
@@ -200,7 +199,7 @@ sub episode_number {
 
     The default format is:
        %N.s%Se%E - %n (eg: "Heroes.s1e02 - Don't Look Back")
- 
+
 =cut
 
 sub format_details {
@@ -257,7 +256,7 @@ sub first_aired {
 
     # in scalar context, returns a comma-delimited string
     my $stars = $episode->stars;
-    
+
     # in array context, returns an array
     my @stars = $episode->stars;
 
@@ -277,7 +276,7 @@ sub stars {
         $self->{stars} = $self->_parse_people($stars);
         $self->{filled}->{stars} = 1;
     }
-    
+
     return $self->{stars};
 }
 
@@ -287,7 +286,7 @@ sub stars {
 
     # in scalar context, returns a comma-delimited string
     my $guest_stars = $episode->guest_stars;
-    
+
     # in array context, returns an array
     my @guest_stars = $episode->guest_stars;
 
@@ -303,7 +302,7 @@ sub guest_stars {
             <td>\n
                 (<a\shref=.*)
         }x;
-    
+
         $self->{guest_stars} = $self->_parse_people($stars);
         $self->{filled}->{guest_stars} = 1;
     }
@@ -318,7 +317,7 @@ sub guest_stars {
 
     # in scalar context, returns a comma-delimited string
     my $recurring_roless = $episode->recurring_roless;
-    
+
     # in array context, returns an array
     my @recurring_roless = $episode->recurring_roless;
 
@@ -334,7 +333,7 @@ sub recurring_roles {
             <td>\n
                 (<a\shref=.*)
         }x;
-    
+
         $self->{recurring_roles} = $self->_parse_people($stars);
         $self->{filled}->{recurring_roles} = 1;
     }
@@ -361,7 +360,7 @@ sub _parse_people {
 
     # in scalar context, returns a comma-delimited string
     my $writers = $episode->writers;
-    
+
     # in array context, returns an array
     my @writers = $episode->writers;
 
@@ -377,7 +376,7 @@ sub writers {
             <td>\n
                 (<a\shref=.*)
         }x;
-    
+
         $self->{writers} = $self->_parse_people($stars);
         $self->{filled}->{writers} = 1;
     }
@@ -391,7 +390,7 @@ sub writers {
 
     # in scalar context, returns a comma-delimited string
     my $directors = $episode->directors;
-    
+
     # in array context, returns an array
     my @directors = $episode->directors;
 
@@ -407,7 +406,7 @@ sub directors {
             <td>\n
                 (<a\shref=.*)
         }x;
-    
+
         $self->{directors} = $self->_parse_people($stars);
         $self->{filled}->{directors} = 1;
     }
@@ -435,9 +434,7 @@ sub url {
 
 sub season {
     my $self = shift;
-    
     my @episodes = $self->series->episodes( season => $self->season_number );
-     
     return wantarray ? @episodes : \@episodes;
 }
 
@@ -538,7 +535,7 @@ sub _html {
     unless ($self->{filled}->{html}) {
         my $ua = LWP::UserAgent->new( agent => $self->{_agent} );
         my $rc = $ua->get($self->url);
-    
+
         croak sprintf('Unable to fetch page for series %s', $self->id)
             unless $rc->is_success;
         $self->{html} =

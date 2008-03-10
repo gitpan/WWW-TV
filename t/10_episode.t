@@ -9,7 +9,8 @@ use_ok('WWW::TV::Episode');
 
 {   # Create a blank episode with a name but don't check anything else
     # because that would hit up the interwebs.
-    diag("Testing with generic episode prepopulated with name only");
+    diag("Testing with generic episode prepopulated with name only")
+        unless $ENV{HARNESS_ACTIVE};
     isa_ok(
         my $episode = WWW::TV::Episode->new(
             id   => 1,
@@ -22,7 +23,8 @@ use_ok('WWW::TV::Episode');
 }
 
 {   # Pilot episode for Prison Break
-    diag("Testing by ID using pilot episode for Prison Break");
+    diag("Testing by ID using pilot episode for Prison Break")
+        unless $ENV{HARNESS_ACTIVE};
     isa_ok(
         my $episode = WWW::TV::Episode->new(id => 423504),
         'WWW::TV::Episode',
@@ -50,11 +52,11 @@ use_ok('WWW::TV::Episode');
         'format_details with crazy string'
     );
 
-    diag('Checking $episode->series');
+    diag('Checking $episode->series') unless $ENV{HARNESS_ACTIVE};
     my $series = $episode->series;
     isa_ok($series, 'WWW::TV::Series');
 
-    diag('Checking $episode->season');
+    diag('Checking $episode->season') unless $ENV{HARNESS_ACTIVE};
 
     my @season_eps = $episode->season;
     is(scalar(@season_eps), 23, '23 episodes for season 1');
@@ -62,14 +64,14 @@ use_ok('WWW::TV::Episode');
 
 {   # Get the last episode of the Mr. Bean animated series which never aired
     # and check to make sure the first aired date comes back ok.
-    diag('Testing an episode that never aired');
+    diag('Testing an episode that never aired') unless $ENV{HARNESS_ACTIVE};
     isa_ok(
         my $episode = WWW::TV::Episode->new(id => 331173),
         'WWW::TV::Episode',
     );
     is(
         $episode->name,
-        'Egg &amp; Bean / Hopping Mad',
+        'Egg & Bean / Hopping Mad',
         'got the right Mr Bean ep'
     );
     is($episode->first_aired, 'n/a', 'first aired is n/a');

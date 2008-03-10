@@ -1,0 +1,4 @@
+^Makefile$
+^Makefile.old$
+.svn/
+.bak$

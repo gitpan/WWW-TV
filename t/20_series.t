@@ -8,7 +8,7 @@ use Test::More tests => 26;
 use_ok('WWW::TV::Series');
 
 { # MASH via id =>
-    diag('Testing by ID using series: 119 (M*A*S*H)');
+    diag('Testing by ID using series: 119 (M*A*S*H)') unless $ENV{HARNESS_ACTIVE};
     isa_ok(my $series = WWW::TV::Series->new(id => 119), 'WWW::TV::Series');
     is($series->name, 'M*A*S*H', 'series name is: M*A*S*H');
     is(
@@ -39,7 +39,7 @@ use_ok('WWW::TV::Series');
 }
 
 { # Prison Break via name =>
-    diag('Testing by name using series: Prison Break');
+    diag('Testing by name using series: Prison Break') unless $ENV{HARNESS_ACTIVE};
     isa_ok(
         my $series = WWW::TV::Series->new(name => 'Prison Break'),
         'WWW::TV::Series',
@@ -56,7 +56,7 @@ use_ok('WWW::TV::Series');
 }
 
 { # Joey via id =>, and check episodes from both season 1 and 2
-    diag("Testing by ID using series: Joey");
+    diag("Testing by ID using series: Joey") unless $ENV{HARNESS_ACTIVE};
     isa_ok(my $series = WWW::TV::Series->new(id => 20952), 'WWW::TV::Series');
     is($series->name, 'Joey', 'series name is: Joey');
     isa_ok(

@@ -38,10 +38,13 @@ modify it under the same terms as Perl itself.
 
 package WWW::TV;
 
+use strict;
+use warnings;
+
 use WWW::TV::Series;
 use WWW::TV::Episode;
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 1;
 

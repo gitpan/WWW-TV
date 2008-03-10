@@ -1,9 +1,14 @@
 Changes
-Makefile.PL
-MANIFEST
-README
-t/10_episode.t
-t/20_series.t
 lib/WWW/TV.pm
 lib/WWW/TV/Episode.pm
 lib/WWW/TV/Series.pm
+LICENSE
+Makefile.PL
+MANIFEST			This list of files
+MANIFEST.SKIP
+META.yml
+README
+t/10_episode.t
+t/20_series.t
+t/98_pod.t
+t/99_pod_coverage.t

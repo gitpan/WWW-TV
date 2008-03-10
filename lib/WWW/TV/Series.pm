@@ -23,7 +23,7 @@ package WWW::TV::Series;
 use strict;
 use warnings;
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 use Carp qw(croak);
 use LWP::UserAgent qw();
@@ -34,13 +34,13 @@ use LWP::UserAgent qw();
     you have previously looked that up, or the name of the show which
     will be used to perform a search and the id will be taken from the
     first result.
-    
+
     Optional parameters let you set the season number or LWP user agent.
 
         # default usage
         my $series = WWW::TV::Series->new(name => 'Prison Break');
         my $series = WWW::TV::Series->new(id => 31635);
-        
+
         # change user-agent from the default of "libwww-perl/#.##"
         my $series = WWW::TV::Series->new(id => 31635, agent => 'WWW::TV');
 
@@ -75,7 +75,7 @@ sub new {
     }
 
     $data{agent} ||= LWP::UserAgent::_agent;
-    
+
     $data{id} = $class->_get_first_search_result($data{name}, $data{agent})
         if exists $data{name};
 
@@ -119,7 +119,7 @@ sub _get_first_search_result {
 
 sub summary {
     my $self = shift;
-    
+
     unless (exists $self->{filled}->{summary}) {
         ($self->{summary}) = $self->_html =~ m{
                 <div\sclass="mt-10">\n
@@ -139,10 +139,10 @@ sub summary {
 =head2 genres
 
     Returns a list of all the genres that TV.com have categorised this series as.
-    
+
     # in scalar context, returns a comma-delimited string
     my $genres = $series->genres;
-    
+
     # in array context, returns an array
     my @genres = $series->genres;
 
@@ -151,25 +151,25 @@ sub summary {
 sub genres {
     my $self = shift;
 
-    unless (exists $self->{filled}->{genres}) {    
+    unless (exists $self->{filled}->{genres}) {
         my ($genres_row) = $self->_html =~ m{
             Show\sCategories:\n
             (<a\shref=.*</a>)
         }x;
-    
+
         $self->{genres} =
             join(
                 ', ',
                 map { s/\s*<a href="[^"]+">(.*?)<\/a>\s*/$1/; $_ }
                 split(/,/, $genres_row)
             );
-    
+
         my @genres = split(/, /, $self->{genres});
         $self->{genres} = \@genres;
         $self->{filled}->{genres} = 1;
     }
 
-    return wantarray ? @{$self->{genres}} : join(', ', @{$self->{genres}});    
+    return wantarray ? @{$self->{genres}} : join(', ', @{$self->{genres}});
 }
 
 =head2 cast
@@ -180,7 +180,7 @@ sub genres {
 
     # in scalar context, returns a comma-delimited string
     my $cast = $series->cast;
-    
+
     # in array context, returns an array
     my @cast = $series->cast;
 
@@ -201,7 +201,7 @@ sub cast {
         $self->{filled}->{cast} = 1;
     }
 
-    return wantarray ? @{$self->{cast}} : join(', ', @{$self->{cast}});    
+    return wantarray ? @{$self->{cast}} : join(', ', @{$self->{cast}});
 }
 
 =head2 name
@@ -212,7 +212,7 @@ sub cast {
 
 sub name {
     my $self = shift;
-    
+
     unless (exists $self->{filled}->{name}) {
         ($self->{name}) = $self->_html =~ m{
             <div\sid="content-head".*?>\n\n?
@@ -236,7 +236,7 @@ sub image {
     unless (exists $self->{filled}->{image}) {
         ($self->{image}) = $self->_html =~ m{
             <a\sclass="default-image\smore"\shref=".+;image">\n
-            <img\ssrc="(.+)"\salt=".+"\s/>More\sPictures\s+</a>\n
+            <img\ssrc="(.+)"\salt=".+"\s/>More\s(Celeb\s)?(Pictures|Photos)\s+</a>\n
         }x;
         $self->{filled}->{image} = 1;
     }
@@ -247,7 +247,7 @@ sub image {
 =head2 episodes
 
     Returns an array of L<WWW::TV::Episode> objects in order.
-    
+
     # All episodes
     my @episodes = $series->episodes;
 
@@ -259,19 +259,19 @@ sub image {
 sub episodes {
     my $self = shift;
 
-    my %args;    
+    my %args;
     if (scalar(@_) % 2 == 0) {
         %args = @_;
     }
-    
+
     my $season = exists $args{season} ? $args{season} : $self->{_season};
-    
-    unless ($self->{filled}->{episodes}->{$season}) { 
+
+    unless ($self->{filled}->{episodes}->{$season}) {
         my $ua = LWP::UserAgent->new(agent => $self->{_agent});
         my $rc = $ua->get($self->episode_url($season));
         croak sprintf('Unable to fetch episodes for series %d, season %d', $self->id, $season)
             unless $rc->is_success;
-    
+
         require WWW::TV::Episode;
         my @episodes =
             grep { defined }
@@ -282,7 +282,7 @@ sub episodes {
                 }
                 $ep;
             } split /\n/, $rc->content;
-    
+
         $self->{episodes}->{$season} = \@episodes;
         $self->{filled}->{episodes}->{$season} = 1;
     }
@@ -298,7 +298,7 @@ sub _html {
         my $rc = $ua->get($self->url);
         croak sprintf('Unable to fetch page for series %s', $self->id)
             unless $rc->is_success;
-    
+
         $self->{html} =
             join(
                 "\n",
@@ -320,7 +320,7 @@ sub _html {
 
 sub id {
     my $self = shift;
-    
+
     return $self->{id};
 }
 
@@ -340,7 +340,7 @@ sub url {
 
     Returns the url that is used to get the episode listings for this
     series.
-    
+
     $season is optional ; defaults to "all"
 
 =cut

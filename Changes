@@ -1,5 +1,8 @@
 Revision history for Perl extension WWW::TV.
 
+0.09  Mon Mar 10 11:42:28 2008
+	- Fixed a bug caused by TV.com no longer encoding &'s and what not.
+
 0.08  Fri Mar 09 00:42:28 2007
 	- Fixed a bug with the "series_id" field, cos TV.com changed templates.
 		- Thanks to Anatoliy Dmytriyev for the report.
