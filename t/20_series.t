@@ -51,7 +51,7 @@ use_ok('WWW::TV::Series');
         'cast (scalar context) includes Wentworth Miller'
     );
     my @cast = $series->cast;
-    is(scalar(@cast), 10, 'cast (array context)');
+    is(scalar(@cast), 5, 'cast (array context)');
     ok($series->image =~ /\.jpg$/, 'series image uri includes .jpg');
 }
 

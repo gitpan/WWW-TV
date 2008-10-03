@@ -23,7 +23,7 @@ package WWW::TV::Series;
 use strict;
 use warnings;
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 use Carp qw(croak);
 use LWP::UserAgent qw();
@@ -95,17 +95,12 @@ sub _get_first_search_result {
 
     my $ua = LWP::UserAgent->new( agent => $agent );
     my $rc = $ua->get(
-        "http://www.tv.com/search.php?stype=program&qs=$name"
+        "http://www.tv.com/search.php?type=Search&stype=ajax_search&search_type=program&qs=$name"
     );
     croak "Unable to get search results for $name" unless $rc->is_success;
 
     for (split /\n/, $rc->content) {
-        next unless m#
-            ^
-            \s+
-            <a\s.*?\shref="http://www.tv.com/.*?show/(\d+)/summary.html
-            \?q=.*?&tag=search_results
-        #x;
+        next unless m{Show: <a href="http://www.tv.com/.*?show/(\d+)/summary.html};
         return $1;
     }
     croak 'Unable to find a show in the search results.';
@@ -122,16 +117,14 @@ sub summary {
 
     unless (exists $self->{filled}->{summary}) {
         ($self->{summary}) = $self->_html =~ m{
-                <div\sclass="mt-10">\n
-                (?:
-                    <a\sclass="default-image\smore"\shref=.*?>\n
-                    <img\ssrc=.*?\s/>More\sPictures\s*</a>\n
-                )?
-                (.*?)\n
-                </div>\n
-        }sx;
-           $self->{filled}->{summary} = 1;
-       }
+            <span\sclass="long">(.*?)</span>
+        }smx;
+        $self->{summary} =~ s/<br ?\/?>/\n/g;
+        $self->{summary} =~ s/<a href="[^"]+">.*?<\/a>//g;
+        $self->{summary} =~ s/^\s*//;
+        $self->{summary} =~ s/\s*$//;
+        $self->{filled}->{summary} = 1;
+    }
 
     return $self->{summary};
 }
@@ -153,8 +146,7 @@ sub genres {
 
     unless (exists $self->{filled}->{genres}) {
         my ($genres_row) = $self->_html =~ m{
-            Show\sCategories:\n
-            (<a\shref=.*</a>)
+            <span\sclass="genres">(<a\shref=.*</a>)</span>
         }x;
 
         $self->{genres} =
@@ -190,11 +182,10 @@ sub cast {
     my $self = shift;
 
     unless (exists $self->{filled}->{cast}) {
+        my ($cast_line) = $self->_html =~ m{<ul><li\s* ><div class="wrap"><span class="cast_member">(.*?)</ul>};
         my @cast;
-        for my $line (split /\n/, $self->_html) {
-            next unless $line =~ m{
-                <a .*?href="http://www\.tv\.com/.*?person/\d+/summary\.html\?.*?tag=cast;name;\d+">(.*?)</a>
-            }x;
+        for my $person (split /<\/li>/, $cast_line) {
+            next unless $person =~ m{<a href="[^"]+">(.*?)</a>};
             push @cast, $1;
         }
         $self->{cast} = \@cast;
@@ -215,8 +206,8 @@ sub name {
 
     unless (exists $self->{filled}->{name}) {
         ($self->{name}) = $self->_html =~ m{
-            <div\sid="content-head".*?>\n\n?
-            <h1>(.*?)</h1>\n
+            <div\sclass="content_title".*?>\n\n?
+            <h2>(.*?):\s*<span>Summary</span></h2>\n
         }x;
         $self->{filled}->{name} = 1;
     }
@@ -235,8 +226,8 @@ sub image {
 
     unless (exists $self->{filled}->{image}) {
         ($self->{image}) = $self->_html =~ m{
-            <a\sclass="default-image\smore"\shref=".+;image">\n
-            <img\ssrc="(.+)"\salt=".+"\s/>More\s(Celeb\s)?(Pictures|Photos)\s+</a>\n
+          <div\sid="topslot">\s*\n
+          \s*<img\ssrc="(.*?)"\s\/>
         }x;
         $self->{filled}->{image} = 1;
     }
@@ -273,15 +264,16 @@ sub episodes {
             unless $rc->is_success;
 
         require WWW::TV::Episode;
+        my ($episode_line) = $rc->content =~ m{<th class="ep_title">(.*)\n};
         my @episodes =
             grep { defined }
             map {
                 my $ep;
-                if (m#<a href=".*/episode/(\d+)/summary\.html[^"]*">(.*)</a>#) {
+                if (m#<a href=".*/episode/(\d+)/summary\.html[^"]*">(.*?)</a>#) {
                     $ep = WWW::TV::Episode->new(id => $1, name => $2, agent => $self->{_agent});
                 }
                 $ep;
-            } split /\n/, $rc->content;
+            } split /<\/div>/, $episode_line;
 
         $self->{episodes}->{$season} = \@episodes;
         $self->{filled}->{episodes}->{$season} = 1;

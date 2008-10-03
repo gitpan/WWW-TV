@@ -27,7 +27,7 @@ package WWW::TV::Episode;
 use strict;
 use warnings;
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 use Carp qw(croak);
 use LWP::UserAgent qw();
@@ -105,12 +105,11 @@ sub name {
     my $self = shift;
 
     unless (exists $self->{filled}->{name}) {
-        ($self->{name}) = $self->_html =~ m{
-            <td\svalign="top"\sclass="pr-10\spl-10">\n
-            \s*<h1>(.*?)</h1>\n
-        }x;
-
         $self->{filled}->{name} = 1;
+        ($self->{name}) = $self->_html =~ m{
+            <h2\sclass="module_title">(.*)</h2>\n
+            \s*<ul\sclass="ep_stats">
+        }x;
     }
 
     return $self->{name};
@@ -128,23 +127,12 @@ sub summary {
     unless (exists $self->{filled}->{summary}) {
         $self->{filled}->{summary} = 1;
         ($self->{summary}) = $self->_html =~ m{
-          <div\sid="full-col-wrap">\n
-          \n
-          <div\sid="main-col">\n
-          \n
-          <div>\n
-          (?:
-            <div\sid="video-hub".*?\n
-            .*?\n
-            .*?\n
-            </div>\n
-            .*?Watch\sVideo.*?\n
-            </div>\n
-          )?
-          (.*?)
-          <div\sclass="ta-r\smt-10\sf-bold">\n
-        }sx;
-        $self->{summary} =~ s{<br(?: /)?>}{}g;
+            <p\sclass="deck">(.*?)</p>
+        }smx;
+        $self->{summary} =~ s/<br ?\/?>/\n/g;
+        $self->{summary} =~ s/<a href="[^"]+">.*?<\/a>//g;
+        $self->{summary} =~ s/^\s*//;
+        $self->{summary} =~ s/\s*$//;
     }
 
     return $self->{summary};
@@ -267,10 +255,10 @@ sub stars {
 
     unless (exists $self->{filled}->{stars}) {
         my ($stars) = $self->_html =~ m{
-                Star:\n
-            </td>\n
-            <td>\n
-                (<a\shref=.*)
+          <dl\s*>\s*
+          <dt>Stars?:</dt>\s*
+          (<dd>.*?</dd>)\s*
+          </dl>
         }x;
 
         $self->{stars} = $self->_parse_people($stars);
@@ -297,10 +285,10 @@ sub guest_stars {
 
     unless (exists $self->{filled}->{guest_stars}) {
         my ($stars) = $self->_html =~ m{
-                Guest\sStar:\n
-            </td>\n
-            <td>\n
-                (<a\shref=.*)
+          <dl\s*(?:class="last")?\s*>\s*
+          <dt>Guest\sStars?:</dt>\s*
+          (<dd>.*?</dd>)\s*
+          </dl>
         }x;
 
         $self->{guest_stars} = $self->_parse_people($stars);
@@ -328,10 +316,10 @@ sub recurring_roles {
 
     unless (exists $self->{filled}->{recurring_roles}) {
         my ($stars) = $self->_html =~ m{
-                Recurring\sRole:\n
-            </td>\n
-            <td>\n
-                (<a\shref=.*)
+          <dl\s*>\s*
+          <dt>Recurring\sRoles?:</dt>\s*
+          (<dd>.*?</dd>)\s*
+          </dl>
         }x;
 
         $self->{recurring_roles} = $self->_parse_people($stars);
@@ -346,7 +334,7 @@ sub _parse_people {
     my $stars = shift or return;
 
     my @stars;
-    for my $star (split /,/, $stars) {
+    for my $star (split /<\/dd>/, $stars) {
         next unless $star =~ m{<a href="[^"]+">(.*?)</a>};
         push @stars, $1;
     }
@@ -370,14 +358,14 @@ sub writers {
     my $self = shift;
 
     unless (exists $self->{filled}->{writers}) {
-        my ($stars) = $self->_html =~ m{
-                Writer:\n
-            </td>\n
-            <td>\n
-                (<a\shref=.*)
+        my ($writers) = $self->_html =~ m{
+          <dl\s*>\s*
+          <dt>Writers?:</dt>\s*
+          (<dd>.*?</dd>)\s*
+          </dl>
         }x;
 
-        $self->{writers} = $self->_parse_people($stars);
+        $self->{writers} = $self->_parse_people($writers);
         $self->{filled}->{writers} = 1;
     }
 
@@ -400,14 +388,14 @@ sub directors {
     my $self = shift;
 
     unless (exists $self->{filled}->{directors}) {
-        my ($stars) = $self->_html =~ m{
-                Director:\n
-            </td>\n
-            <td>\n
-                (<a\shref=.*)
+        my ($directors) = $self->_html =~ m{
+          <dl\s*>\s*
+          <dt>Directors?:</dt>\s*
+          (<dd>.*?</dd>)\s*
+          </dl>
         }x;
 
-        $self->{directors} = $self->_parse_people($stars);
+        $self->{directors} = $self->_parse_people($directors);
         $self->{filled}->{directors} = 1;
     }
 
@@ -449,7 +437,7 @@ sub series_id {
 
     unless (exists $self->{filled}->{series_id}) {
         my ($id) = $self->_html =~ m{
-            <a\shref=".*/show/(\d+)/cast\.html">Cast</a>
+            <a\shref=".*/show/(\d+)/cast\.html"><span>Cast</span></a>
         }sx;
         $self->{series_id} = $id;
         $self->{filled}->{series_id} = 1;
@@ -484,15 +472,16 @@ sub series {
 sub _fill_vitals {
     my $self = shift;
 
-    ($self->{episode_number}, $self->{season_number}, $self->{first_aired})
+    ($self->{season_number}, $self->{episode_number}, $self->{first_aired})
         = $self->_html
         =~ m{
-            <span\sclass="f-bold\sf-666">
-            Episode\sNumber:\s(\d+)
-            \s&nbsp;&nbsp;\s
-            Season\sNum:\s(\d+)
-            \s&nbsp;&nbsp;\s
-            First\sAired:\s(?:\w+\s)?(\w+\s\d\d?,\s\d{4}|n/a)
+            <ul\sclass="ep_stats">
+              <li>.*?</li>
+              <li><span>Season:</span>\s*(.*?)\s*</li>
+              <li><span>Episode:</span>\s*(.*?)\s*</li>
+              (?:<li><span>First\sAired:</span>\s*(?:\w+\s*)?(\d+/\d+/\d+|n/a)\s*</li>)?
+              (?:<li><span>Prod\sCode:</span>\s*.*\s*</li>)?
+            </ul>
         }sx;
 
     $self->{filled}->{$_} = 1 for qw(episode_number season_number first_aired);
@@ -503,27 +492,13 @@ sub _fill_vitals {
 sub _parse_first_aired {
     my $self = shift;
 
+    if (not defined $self->{first_aired}) {
+      $self->{first_aired} = 'n/a';
+    }
+
     return if $self->{first_aired} eq 'n/a';
 
-    my ($month, $day, $year) = $self->{first_aired} =~ m{^
-        (\w+)
-        \s*(\d+),
-        \s*(\d+)
-    $}x;
-    $month = {
-        January   => 1,
-        February  => 2,
-        March     => 3,
-        April     => 4,
-        May       => 5,
-        June      => 6,
-        July      => 7,
-        August    => 8,
-        September => 9,
-        October   => 10,
-        November  => 11,
-        December  => 12,
-    }->{$month};
+    my ($month, $day, $year) = split('/', $self->{first_aired});
     $self->{first_aired} = sprintf('%04d-%02d-%02d', $year, $month, $day);
 
     return 1;

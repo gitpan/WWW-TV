@@ -1,5 +1,8 @@
 Revision history for Perl extension WWW::TV.
 
+0.10  Fri Oct 03 17:40:28 2008
+	- TV.com updated their design, nothing was working.
+
 0.09  Mon Mar 10 11:42:28 2008
 	- Fixed a bug caused by TV.com no longer encoding &'s and what not.
 
