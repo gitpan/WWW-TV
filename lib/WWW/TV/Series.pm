@@ -23,7 +23,7 @@ package WWW::TV::Series;
 use strict;
 use warnings;
 
-our $VERSION = '0.10';
+our $VERSION = '0.12';
 
 use Carp qw(croak);
 use LWP::UserAgent qw();
@@ -74,9 +74,10 @@ sub new {
         %data = @_;
     }
 
-    $data{agent} ||= LWP::UserAgent::_agent;
-
-    $data{id} = $class->_get_first_search_result($data{name}, $data{agent})
+    $data{agent} = $class->agent($data{agent});
+    $data{site}  = $class->site ($data{site});
+ 
+    $data{id} = $class->_get_first_search_result($data{name}, $data{agent}, $data{site})
         if exists $data{name};
 
     croak 'No id or name given to constructor' unless exists $data{id};
@@ -85,22 +86,24 @@ sub new {
     return bless {
         id      => $data{id},
         _season => $data{season} || 0,
-        _agent  => $data{agent} || LWP::UserAgent::_agent,
+        _agent  => $data{agent},
+        _site   => $data{site},
         filled  => { id => 1 },
     }, $class;
 }
 
 sub _get_first_search_result {
-    my ($class, $name, $agent) = @_;
+    my ($class, $name, $agent, $site) = @_;
 
     my $ua = LWP::UserAgent->new( agent => $agent );
     my $rc = $ua->get(
-        "http://www.tv.com/search.php?type=Search&stype=ajax_search&search_type=program&qs=$name"
+        sprintf("http://%s.tv.com/search.php?type=Search&stype=ajax_search&search_type=program&qs=%s",
+        	$site, $name)
     );
     croak "Unable to get search results for $name" unless $rc->is_success;
 
     for (split /\n/, $rc->content) {
-        next unless m{Show: <a href="http://www.tv.com/.*?show/(\d+)/summary.html};
+        next unless m{Show: <a href="http://\w+.tv.com/.*?show/(\d+)/summary.html};
         return $1;
     }
     croak 'Unable to find a show in the search results.';
@@ -227,7 +230,8 @@ sub image {
     unless (exists $self->{filled}->{image}) {
         ($self->{image}) = $self->_html =~ m{
           <div\sid="topslot">\s*\n
-          \s*<img\ssrc="(.*?)"\s\/>
+          (?:<a\shref="[^"]+">\n)?
+          \s*<img\ssrc="([^"]+)"
         }x;
         $self->{filled}->{image} = 1;
     }
@@ -258,7 +262,7 @@ sub episodes {
     my $season = exists $args{season} ? $args{season} : $self->{_season};
 
     unless ($self->{filled}->{episodes}->{$season}) {
-        my $ua = LWP::UserAgent->new(agent => $self->{_agent});
+        my $ua = LWP::UserAgent->new(agent => $self->agent);
         my $rc = $ua->get($self->episode_url($season));
         croak sprintf('Unable to fetch episodes for series %d, season %d', $self->id, $season)
             unless $rc->is_success;
@@ -270,7 +274,7 @@ sub episodes {
             map {
                 my $ep;
                 if (m#<a href=".*/episode/(\d+)/summary\.html[^"]*">(.*?)</a>#) {
-                    $ep = WWW::TV::Episode->new(id => $1, name => $2, agent => $self->{_agent});
+                    $ep = WWW::TV::Episode->new(id => $1, name => $2, agent => $self->agent);
                 }
                 $ep;
             } split /<\/div>/, $episode_line;
@@ -286,7 +290,7 @@ sub _html {
     my $self = shift;
 
     unless ($self->{filled}->{html}) {
-        my $ua = LWP::UserAgent->new (agent => $self->{_agent});
+        my $ua = LWP::UserAgent->new (agent => $self->agent);
         my $rc = $ua->get($self->url);
         croak sprintf('Unable to fetch page for series %s', $self->id)
             unless $rc->is_success;
@@ -316,6 +320,52 @@ sub id {
     return $self->{id};
 }
 
+=head2 agent ($value)
+
+Returns the current user agent setting, and sets to $value if provided.
+
+=cut
+
+sub agent {
+    my $self = shift;   # may be called as $self or $class
+    my $value = shift;
+
+    if (ref $self) {
+        if (defined $value) {    
+            $self->{_agent} = $value;
+        }
+        return ($self->{_agent} || LWP::UserAgent::_agent);
+    } else {
+        return ($value || LWP::UserAgent::_agent);
+    }
+}
+
+=head2 site ($value)
+
+Returns the current mirror site setting, and sets to $value if provided.
+
+Default site is "www"; other options include: us, uk, au
+
+=cut
+
+sub site {
+    my $self = shift;  # may be called as $self or $class
+    my $value = shift;
+
+    if (ref $self) {
+        if (defined $value) {    
+			if ($value =~ m#^(au|uk|us|www|)$#i) {
+				$self->{_site} = $value;
+			} else {
+				warn "Ignoring unknown site value: [$value]\n";
+			}
+        }
+        return ($self->{_site} || 'www');
+    } else {
+        return ($value || 'www');
+    }
+}
+
 =head2 url
 
     Returns the url that was used to create this object.
@@ -325,7 +375,7 @@ sub id {
 sub url {
     my $self = shift;
 
-    return sprintf('http://www.tv.com/show/%d/summary.html', $self->id);
+    return sprintf('http://%s.tv.com/show/%d/summary.html', $self->{_site}, $self->id);
 }
 
 =head2 episode_url ($season)
@@ -339,11 +389,11 @@ sub url {
 
 sub episode_url {
     my $self = shift;
-    my $season = shift || 0;  # 0 == ALL seasons
+    my $season = shift || 'All';  # 0 == ALL seasons
 
     return sprintf(
-        'http://www.tv.com/show/%d/episode_listings.html?season=%d',
-        $self->id, $season
+        'http://%s.tv.com/show/%d/episode_listings.html?season=%s',
+        $self->{_site}, $self->id, $season
     );
 }
 
@@ -377,6 +427,6 @@ Stephen Steneker C<stennie@cpan.org>
 
 =head1 LICENCE AND COPYRIGHT
 
-Copyright (c) 2006, 2007 Danial Pearce C<cpan@tigris.id.au>. All rights reserved.
+Copyright (c) 2006-2008 Danial Pearce C<cpan@tigris.id.au>. All rights reserved.
 
-Some parts copyright 2007 Stephen Steneker C<stennie@cpan.org>.
+Some parts copyright 2007-2008 Stephen Steneker C<stennie@cpan.org>.

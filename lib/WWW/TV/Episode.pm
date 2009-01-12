@@ -27,7 +27,7 @@ package WWW::TV::Episode;
 use strict;
 use warnings;
 
-our $VERSION = '0.10';
+our $VERSION = '0.12';
 
 use Carp qw(croak);
 use LWP::UserAgent qw();
@@ -73,7 +73,8 @@ sub new {
     return bless {
         id     => $data{id},
         name   => $data{name},
-        _agent => $data{agent} || LWP::UserAgent::_agent,
+        _agent => $data{agent},
+        _site  => $data{site},
         filled => {
             id => 1,
             $data{name}
@@ -181,7 +182,7 @@ sub episode_number {
        %S - season number (0-padded to two digits, if required)
        %i - episode ID
        %e - episode number
-       %E - episide number (0-padded to two digits, if required)
+       %E - episode number (0-padded to two digits, if required)
        %n - episode name
        %d - date episode first aired
 
@@ -402,6 +403,52 @@ sub directors {
     return $self->{directors};
 }
 
+=head2 agent ($value)
+
+Returns the current user agent setting, and sets to $value if provided.
+
+=cut
+
+sub agent {
+    my $self = shift;   # may be called as $self or $class
+    my $value = shift;
+
+    if (ref $self) {
+        if (defined $value) {    
+            $self->{_agent} = $value;
+        }
+        return ($self->{_agent} || LWP::UserAgent::_agent);
+    } else {
+        return ($value || LWP::UserAgent::_agent);
+    }
+}
+
+=head2 site ($value)
+
+Returns the current mirror site setting, and sets to $value if provided.
+
+Default site is "www"; other options include: us, uk, au
+
+=cut
+
+sub site {
+    my $self = shift;  # may be called as $self or $class
+    my $value = shift;
+
+    if (ref $self) {
+        if (defined $value) {
+          if ($value =~ /^(au|uk|us|www|)$/i) {
+            $self->{_site} = $value;
+          } else {
+            warn "Ignoring unknown site value: [$value]\n";
+          }
+        }
+        return ($self->{_site} || 'www');
+    } else {
+        return ($value || 'www');
+    }
+}
+
 =head2 url
 
     Returns the url that was used to create this object.
@@ -411,7 +458,7 @@ sub directors {
 sub url {
     my $self = shift;
 
-    return sprintf('http://www.tv.com/episode/%d/summary.html', $self->id);
+    return sprintf('http://%s.tv.com/episode/%d/summary.html', $self->site, $self->id);
 }
 
 =head2 season
@@ -479,7 +526,7 @@ sub _fill_vitals {
               <li>.*?</li>
               <li><span>Season:</span>\s*(.*?)\s*</li>
               <li><span>Episode:</span>\s*(.*?)\s*</li>
-              (?:<li><span>First\sAired:</span>\s*(?:\w+\s*)?(\d+/\d+/\d+|n/a)\s*</li>)?
+              (?:<li><span>First\sAired:</span>\s*(?:\w*?\s*)?(\d+/\d+/\d+|n/a)\s*</li>)?
               (?:<li><span>Prod\sCode:</span>\s*.*\s*</li>)?
             </ul>
         }sx;
@@ -508,7 +555,7 @@ sub _html {
     my $self = shift;
 
     unless ($self->{filled}->{html}) {
-        my $ua = LWP::UserAgent->new( agent => $self->{_agent} );
+        my $ua = LWP::UserAgent->new( agent => $self->agent );
         my $rc = $ua->get($self->url);
 
         croak sprintf('Unable to fetch page for series %s', $self->id)
@@ -555,9 +602,9 @@ Stephen Steneker C<stennie@cpan.org>
 
 =head1 LICENCE AND COPYRIGHT
 
-Copyright (c) 2006, 2007 Danial Pearce C<cpan@tigris.id.au>. All rights reserved.
+Copyright (c) 2006-2008 Danial Pearce C<cpan@tigris.id.au>. All rights reserved.
 
-Some parts copyright 2007 Stephen Steneker C<stennie@cpan.org>.
+Some parts copyright 2007-2008 Stephen Steneker C<stennie@cpan.org>.
 
 This module is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

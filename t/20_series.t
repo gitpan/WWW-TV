@@ -3,9 +3,10 @@
 use strict;
 use warnings;
 
-use Test::More tests => 26;
+use Test::More tests => 33;
 
 use_ok('WWW::TV::Series');
+use LWP::UserAgent;
 
 { # MASH via id =>
     diag('Testing by ID using series: 119 (M*A*S*H)') unless $ENV{HARNESS_ACTIVE};
@@ -82,6 +83,23 @@ use_ok('WWW::TV::Series');
     is($episode_27->season_number, 2, 'episode 27 is season 2');
     isa_ok($episode_27->series, 'WWW::TV::Series');
     is($episode_27->series->name, 'Joey', 'episode series is: Joey');
+    
+    # Verify site() accessor/mutator
+    is($series->site, 'www', 'site defaults to: www');
+    $series->site('us');
+    is($series->site, 'us', 'changed site to: us');
+    $series->site('bogus');
+    is($series->site, 'us', 'ignored change to invalid site');
+    $series->site('');
+    is($series->site, 'www', 'reset site back to default'); 
+
+    # Verify agent() accessor/mutator  
+    is($series->agent, LWP::UserAgent::_agent, 'agent');
+    $series->agent('Egg Scrambler 1.0');
+    is($series->agent, 'Egg Scrambler 1.0', 'set custom user agent');
+    $series->agent('');
+    is($series->agent, LWP::UserAgent::_agent, 'reset agent to default');    
+
 }
 
 exit 0;

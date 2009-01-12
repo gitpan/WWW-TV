@@ -1,5 +1,17 @@
 Revision history for Perl extension WWW::TV.
 
+0.12  Mon Jan 12 17:58:29 2009
+	- Fix bug with first_aired, not quite sure what was causing it.
+	- Fix issue with image capturing, TV.com made some slight template changes.
+	- Fix issue with "all" episodes, previously 0 was the way to ask for all,
+      now it's as simple as "All".
+
+0.11  Wed Oct 08 16:29:07 2008 (Stephen Steneker)
+	- Add option to use country-specific tv.com urls
+	  (default www.tv.com is geotargeted based on IP addresses)
+	- Add methods to get/set agent() and site()
+	- Increase test coverage for format_details specifiers
+
 0.10  Fri Oct 03 17:40:28 2008
 	- TV.com updated their design, nothing was working.
 
