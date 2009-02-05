@@ -23,7 +23,7 @@ package WWW::TV::Series;
 use strict;
 use warnings;
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 use Carp qw(croak);
 use LWP::UserAgent qw();
@@ -210,7 +210,7 @@ sub name {
     unless (exists $self->{filled}->{name}) {
         ($self->{name}) = $self->_html =~ m{
             <div\sclass="content_title".*?>\n\n?
-            <h2>(.*?):\s*<span>Summary</span></h2>\n
+            <h1>(.*?):\s*<span>Summary</span></h1>\n
         }x;
         $self->{filled}->{name} = 1;
     }

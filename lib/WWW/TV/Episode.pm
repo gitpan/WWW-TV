@@ -27,7 +27,7 @@ package WWW::TV::Episode;
 use strict;
 use warnings;
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 use Carp qw(croak);
 use LWP::UserAgent qw();
