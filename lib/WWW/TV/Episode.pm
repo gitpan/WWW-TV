@@ -27,7 +27,7 @@ package WWW::TV::Episode;
 use strict;
 use warnings;
 
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 use Carp qw(croak);
 use LWP::UserAgent qw();
@@ -483,9 +483,7 @@ sub series_id {
     my $self = shift;
 
     unless (exists $self->{filled}->{series_id}) {
-        my ($id) = $self->_html =~ m{
-            <a\shref=".*/show/(\d+)/cast\.html"><span>Cast</span></a>
-        }sx;
+        my ($id) = $self->_html =~ m{<a href=".*/show/(\d+)/cast\.html">};
         $self->{series_id} = $id;
         $self->{filled}->{series_id} = 1;
    }

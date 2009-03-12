@@ -23,7 +23,7 @@ package WWW::TV::Series;
 use strict;
 use warnings;
 
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 use Carp qw(croak);
 use LWP::UserAgent qw();
@@ -103,7 +103,7 @@ sub _get_first_search_result {
     croak "Unable to get search results for $name" unless $rc->is_success;
 
     for (split /\n/, $rc->content) {
-        next unless m{Show: <a href="http://\w+.tv.com/.*?show/(\d+)/summary.html};
+        next unless m{<a href="http://\w+.tv.com/.*?show/(\d+)/summary.html};
         return $1;
     }
     croak 'Unable to find a show in the search results.';
